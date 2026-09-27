@@ -1,0 +1,9 @@
+stripe
+figma
+databricks
+anthropic
+mangopay
+copperco
+airbnb
+cloudflare
+gitlab
