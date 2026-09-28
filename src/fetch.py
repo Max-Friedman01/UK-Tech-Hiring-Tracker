@@ -28,3 +28,6 @@ def fetch(client: httpx.Client, url: str) -> httpx.Response | None:
     except httpx.RequestError as e:
         print(f"Error, no response: {e}")
     return None
+
+class FetchError(Exception):
+    pass

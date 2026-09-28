@@ -1,5 +1,5 @@
 import httpx
-from fetch import fetch
+from fetch import fetch, FetchError
 import time
 from models import Job
 import json
@@ -16,7 +16,7 @@ def jobs_url(board: dict) -> str:
 def fetch_jobs(client: httpx.Client, board: dict) -> list[dict]:
     response = fetch(client, jobs_url(board), params={"content": "true"})
     if response is None:
-        return []
+        raise FetchError(f"Failed to fetch jobs for {board['board_id']}")
     return response.json().get("jobs", [])
 
 def check_board(client: httpx.Client, board_id: str) -> dict | None:
