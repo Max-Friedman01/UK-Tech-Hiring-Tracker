@@ -1,0 +1,58 @@
+[
+  {
+    "platform": "greenhouse",
+    "board_id": "airbnb",
+    "host": "https://boards-api.greenhouse.io",
+    "company": "Airbnb",
+    "discovered_at": "2026-09-28T02:10:08"
+  },
+  {
+    "platform": "greenhouse",
+    "board_id": "anthropic",
+    "host": "https://boards-api.greenhouse.io",
+    "company": "Anthropic",
+    "discovered_at": "2026-09-28T02:10:09"
+  },
+  {
+    "platform": "greenhouse",
+    "board_id": "cloudflare",
+    "host": "https://boards-api.greenhouse.io",
+    "company": "Cloudflare",
+    "discovered_at": "2026-09-28T02:10:09"
+  },
+  {
+    "platform": "greenhouse",
+    "board_id": "copperco",
+    "host": "https://boards-api.greenhouse.io",
+    "company": "Copper.co",
+    "discovered_at": "2026-09-28T02:10:10"
+  },
+  {
+    "platform": "greenhouse",
+    "board_id": "databricks",
+    "host": "https://boards-api.greenhouse.io",
+    "company": "Databricks",
+    "discovered_at": "2026-09-28T02:10:11"
+  },
+  {
+    "platform": "greenhouse",
+    "board_id": "figma",
+    "host": "https://boards-api.greenhouse.io",
+    "company": "Figma",
+    "discovered_at": "2026-09-28T02:10:11"
+  },
+  {
+    "platform": "greenhouse",
+    "board_id": "gitlab",
+    "host": "https://boards-api.greenhouse.io",
+    "company": "GitLab",
+    "discovered_at": "2026-09-28T02:10:12"
+  },
+  {
+    "platform": "greenhouse",
+    "board_id": "stripe",
+    "host": "https://boards-api.greenhouse.io",
+    "company": "Stripe",
+    "discovered_at": "2026-09-28T02:10:14"
+  }
+]

@@ -18,9 +18,9 @@ def fetch_non_client(url: str) -> httpx.Response | None:
         print(f"Error, no response: {e}")
     return None
 
-def fetch(client: httpx.Client, url: str) -> httpx.Response | None:
+def fetch(client: httpx.Client, url: str, params=None) -> httpx.Response | None:
     try:
-        response = client.get(url, timeout=15.0, headers=HEADERS)
+        response = client.get(url, timeout=15.0, headers=HEADERS, params=params)
         response.raise_for_status()
         return response
     except httpx.HTTPStatusError as e:
