@@ -20,6 +20,8 @@ import httpx
 
 from fetch import HEADERS, FetchError
 
+from urls import ensure_scheme
+
 ENDPOINT = "https://query.wikidata.org/sparql"
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 UK = "Q145"
@@ -160,7 +162,7 @@ def parse_rows(rows: list[dict]) -> list[dict]:
         companies[qid] = {
             "qid": qid,
             "name": name,
-            "website": website,
+            "website": ensure_scheme(website),
             "founded": _year(_value(row, "founded")),
             "is_tech": _value(row, "tech") == "true",
         }

@@ -12,6 +12,9 @@ class RobotsChecker:
         self._rules = {}
 
     def _link_to_host(self, link: str) -> str:
+        link = link.strip()
+        if not urlparse(link).scheme:
+            link = "https://" + link
         parsed_link = urlparse(link)
         return f"{parsed_link.scheme}://{parsed_link.netloc.lower()}"
 
@@ -60,4 +63,3 @@ class RobotsChecker:
         elif delay < DEFAULT_CRAWL_DELAY:
             delay = DEFAULT_CRAWL_DELAY
         return delay
-
