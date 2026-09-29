@@ -1,14 +1,14 @@
 import httpx
 from bs4 import BeautifulSoup
 import json
-from dataclasses import asdict
 from pathlib import Path
 from robots import RobotsChecker
 from fetch import fetch, make_client
-from urllib.parse import urljoin, urldefrag
+from urllib.parse import urljoin, urldefrag, urlparse
 from urls import link_to_host
 import tldextract
 import time
+import re
 
 SUFFIXES = [
     "/careers",
@@ -36,6 +36,15 @@ PREFIXES = [
     "jobs",
     "work"
 ]
+
+GREENHOUSE_FORMATS = [
+    re.compile(r"greenhouse\.io/embed/[a-z_/]+\?(?:[^#\s]*&)?for=([a-z0-9_-]+)", re.IGNORECASE),
+    re.compile(r"boards-api(?:\.eu)?\.greenhouse\.io/v1/boards/([a-z0-9_-]+)", re.IGNORECASE),
+    re.compile(r"^https?://(?:job-)?boards(?:\.eu)?\.greenhouse\.io/(?!embed\b)([a-z0-9_-]+)", re.IGNORECASE)
+]
+
+MAX_PAGES_PER_SITE = 15
+MAX_DEPTH_PER_SITE = 3
 
 def get_companies(path: str = "data/wikidata_companies.json") -> list[dict]:
     text = Path(path).read_text(encoding="utf-8")
@@ -66,13 +75,40 @@ def attempt_link(client: httpx.Client, link: str, robot: RobotsChecker) -> str |
         response = fetch(client, link)
         time.sleep(delay)
         if response is not None:
-            return crawl_careers(client, response)
+            return crawl_careers(client, response, link)
+    return None
+
+def crawl_header_footer(client: httpx.Client, response: httpx.Response, base_url: str) -> str | None:
     return None
 
 def crawl_careers(client: httpx.Client, response: httpx.Response) -> str | None:
     if not is_html(response):
         return None
+    soup = BeautifulSoup(response.text, "html.parser")
+    base_url = str(response.url)
+    url_list = urls_from_html(soup, base_url)
+
+
+def urls_from_html(soup: BeautifulSoup, base_url: str) -> list[str]:
+    urls = []
+    for element in soup.select("a[href], iframe[src], script[src]"):
+        raw = (element.get("href") or element.get("src") or "").strip()
+        if not raw:
+            continue
+        full = urldefrag(urljoin(base_url, raw)).url
+        if urlparse(full).scheme not in ("http", "https"):
+            continue
+        urls.append(full)
+    return list(dict.fromkeys(urls))
+
+def look_for_greenhouse(urls: list[str]) -> str | None:
+    for url in urls:
+        for gh_format in GREENHOUSE_FORMATS:
+            match = gh_format.search(url)
+            if match:
+                return match.group(1).lower()
     return None
+
 
 def is_html(response: httpx.Response) -> bool:
     content_type = response.headers.get("content-type", "")
