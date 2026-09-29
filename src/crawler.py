@@ -37,3 +37,6 @@ def get_companies(path: str = "data/wikidata_companies.json") -> list[dict]:
 
 def get_links(companies: list[dict]) -> list[str]:
     return [company["website"] for company in companies]
+
+def crawler(link: list[str]) -> list[str]:
+    return None
