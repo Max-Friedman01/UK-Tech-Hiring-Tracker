@@ -1,6 +1,7 @@
 from urllib import robotparser as rbp
 from urllib.parse import urlparse
 import httpx
+from urls import link_to_host
 
 DEFAULT_CRAWL_DELAY = 1.5
 MAX_CRAWL_DELAY = 30.0
@@ -11,15 +12,8 @@ class RobotsChecker:
         self._client = client
         self._rules = {}
 
-    def _link_to_host(self, link: str) -> str:
-        link = link.strip()
-        if not urlparse(link).scheme:
-            link = "https://" + link
-        parsed_link = urlparse(link)
-        return f"{parsed_link.scheme}://{parsed_link.netloc.lower()}"
-
     def _parse_rules(self, link: str) -> None:
-        host = self._link_to_host(link)
+        host = link_to_host(link)
         robots_link = f"{host}/robots.txt"
 
         parser = rbp.RobotFileParser()
@@ -46,14 +40,14 @@ class RobotsChecker:
         self._rules[host] = parser
 
     def check_rule(self, link: str) -> bool:
-        host = self._link_to_host(link)
+        host = link_to_host(link)
         if host not in self._rules:
             self._parse_rules(link)
 
         return self._rules[host].can_fetch(self.agent_name, link)
 
     def crawl_delay(self, link:str) -> float:
-        host = self._link_to_host(link)
+        host = link_to_host(link)
         if host not in self._rules:
             self._parse_rules(link)
 

@@ -44,14 +44,20 @@ def get_links(companies: list[dict]) -> list[str]:
 def crawler(links: list[str]) -> list[str]:
     with make_client() as client:
         robot = RobotsChecker(client, "Jobs Crawler")
-        hit = False
         for link in links:
+            hit = False
             for suffix in SUFFIXES:
-                break
+                try_link = urljoin(link, suffix)
+                if robot.check_rule(try_link):
+                    response = fetch(try_link)
+                    if response is not None:
+                        hit = True
+                        crawl_careers(client, try_link)
+                        break
             if hit == False:
                 for prefix in PREFIXES:
                     break
     return None
 
-def crawl_careers(link: str) -> None:
+def crawl_careers(client: httpx.Client, link: str) -> None:
     return None
