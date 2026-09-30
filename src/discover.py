@@ -4,10 +4,6 @@ import time
 from sources.greenhouse import check_board
 import json
 
-
-
-
-
 def load_seed_boards(path: str = "data/board_ids.txt") -> list[str]:
     lines = Path(path).read_text(encoding="utf-8").splitlines()
     return [line.strip() for line in lines if line.strip() and not line.startswith("#")]

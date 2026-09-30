@@ -3,8 +3,8 @@ from urllib.parse import urlparse
 import httpx
 from urls import link_to_host
 
-DEFAULT_CRAWL_DELAY = 1.5
-MAX_CRAWL_DELAY = 30.0
+DEFAULT_CRAWL_DELAY = 1.0
+MAX_CRAWL_DELAY = 20.0
 
 class RobotsChecker:
     def __init__(self, client: httpx.Client, agent_name: str):
@@ -43,8 +43,10 @@ class RobotsChecker:
         host = link_to_host(link)
         if host not in self._rules:
             self._parse_rules(link)
-
-        return self._rules[host].can_fetch(self.agent_name, link)
+        allowed = self._rules[host].can_fetch(self.agent_name, link)
+        if not allowed:
+            print(f"{link}: Access denied by Robots.txt")
+        return allowed
 
     def crawl_delay(self, link:str) -> float:
         host = link_to_host(link)
@@ -56,4 +58,6 @@ class RobotsChecker:
             return DEFAULT_CRAWL_DELAY
         elif delay < DEFAULT_CRAWL_DELAY:
             delay = DEFAULT_CRAWL_DELAY
+        else:
+            print(f"delay of {delay} secs - above 1 second default")
         return delay

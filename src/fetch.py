@@ -24,9 +24,9 @@ def fetch(client: httpx.Client, url: str, params=None) -> httpx.Response | None:
         response.raise_for_status()
         return response
     except httpx.HTTPStatusError as e:
-        print(f"Error, status: {e.response.status_code}")
+        print(f"{url}: Error, status: {e.response.status_code}")
     except httpx.RequestError as e:
-        print(f"Error, no response: {e}")
+        print(f"{url}: Error, no response: {e}")
     return None
 
 class FetchError(Exception):
