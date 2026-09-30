@@ -53,6 +53,8 @@ MAX_DEPTH_PER_SITE = 3
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
+RESULTS_PATH = DATA_DIR / "crawl_results.jsonl"
+
 def get_companies(path: Path = DATA_DIR / "wikidata_companies.json") -> list[dict]:
     text = Path(path).read_text(encoding="utf-8")
     return json.loads(text)
@@ -205,25 +207,37 @@ def is_html(response: httpx.Response) -> bool:
         return False
     return True
 
-def total_crawl() -> list[dict]:
+def total_crawl() -> None:
     companies_with_boards = []
     companies = get_companies()
     num_companies = len(companies)
+    done = load_done()
     with make_client() as client:
         robot = RobotsChecker(client, "ScraperProject")
         for i, company in enumerate(companies):
+            if company["qid"] in done:
+                continue
             try:
                 dict_with_board = crawl_company(client, robot, company)
             except Exception as e:
-                print(f"Error {e} for company {i+1}. Skipped.")
-                continue
+                print(f"Error {e} for company {i+1}.")
+                dict_with_board = {**company, "board_id": None, "status": "Site error", "error": f"{type(e).__name__}: {e}"}
             companies_with_boards.append(dict_with_board)
+            save_result(dict_with_board)
             if dict_with_board["status"] == "found":
                 print(f"Company {i+1}/{num_companies} finished. Board found successfully - {dict_with_board["board_id"]}.")
             else:
                 print(f"Company {i+1}/{num_companies} finished. Board not found.")
-    print(companies_with_boards)
-    return companies_with_boards
+
+def save_result(result: dict, path: Path = RESULTS_PATH) -> None:
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(result, ensure_ascii=False) + "\n")
+
+def load_done(path: Path = RESULTS_PATH) -> set[str]:
+    if not path.exists():
+        return set()
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return {json.loads(line)["qid"] for line in lines if line.strip()}
 
 
 KNOWN_GREENHOUSE = [
@@ -271,9 +285,4 @@ def test_known(companies: list[dict] = KNOWN_GREENHOUSE) -> list[dict]:
 
 
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) > 1 and sys.argv[1] == "test":
-        test_known()
-    else:
-        total_crawl()
+    total_crawl()
