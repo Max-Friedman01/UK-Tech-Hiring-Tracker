@@ -7,7 +7,6 @@ from datetime import datetime
 
 GREENHOUSE_HOSTS = [
     "https://boards-api.greenhouse.io",
-    "https://boards-api.eu.greenhouse.io",
 ]
 
 def jobs_url(board: dict) -> str:
@@ -27,7 +26,7 @@ def check_board(client: httpx.Client, board_id: str) -> dict | None:
                     "platform": "greenhouse",
                     "board_id": board_id,
                     "host": host,
-                    "company": response.json().get("name"),
+                    "company": response.json().get("name").strip(),
                     "discovered_at": datetime.now().isoformat(timespec="seconds")
                 }
         time.sleep(0.5)

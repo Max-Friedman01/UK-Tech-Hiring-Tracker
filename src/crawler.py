@@ -40,15 +40,21 @@ PREFIXES = [
 ]
 
 GREENHOUSE_FORMATS = [
-    re.compile(r"greenhouse\.io/embed/[a-z_/]+\?(?:[^#\s]*&)?for=([a-z0-9_-]+)", re.IGNORECASE),
+    re.compile(r"(?:job-)?boards(?:\.eu)?\.greenhouse\.io/embed/[a-z_/]+\?(?:[^#\s]*&)?for=([a-z0-9_-]+)", re.IGNORECASE),
     re.compile(r"boards-api(?:\.eu)?\.greenhouse\.io/v1/boards/([a-z0-9_-]+)", re.IGNORECASE),
-    re.compile(r"^https?://(?:job-)?boards(?:\.eu)?\.greenhouse\.io/(?!embed\b)([a-z0-9_-]+)", re.IGNORECASE)
+    re.compile(r"^https?://(?:job-)?boards(?:\.eu)?\.greenhouse\.io/(?!embed\b)([a-z0-9_-]+)", re.IGNORECASE),
+]
+
+GREENHOUSE_TEXT_FORMATS = [
+    re.compile(r"(?:job-)?boards(?:\.eu)?\.greenhouse\.io\\?/embed\\?/[a-z_\\/]+\?(?:[^#\s\"']*&)?for=([a-z0-9_-]+)", re.IGNORECASE),
+    re.compile(r"boards-api(?:\.eu)?\.greenhouse\.io\\?/v1\\?/boards\\?/([a-z0-9_-]+)", re.IGNORECASE),
+    re.compile(r"https?:\\?/\\?/(?:job-)?boards(?:\.eu)?\.greenhouse\.io\\?/(?!embed\b)([a-z0-9_-]+)", re.IGNORECASE),
 ]
 
 FILE_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".zip",
                    ".doc", ".docx", ".mp4", ".css", ".js")
 
-MAX_PAGES_PER_SITE = 20
+MAX_PAGES_PER_SITE = 30
 MAX_DEPTH_PER_SITE = 3
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -70,8 +76,10 @@ def crawl_company(client: httpx.Client, robot: RobotsChecker, company: dict) -> 
         if board is not None:
             break
         if num_pages >= MAX_PAGES_PER_SITE:
+            print(f"{num_pages} visited")
             return {**company, "board_id": None, "status": "not found"}
     if board is None:
+        num_pages -= 5
         parts = tldextract.extract(link)
         for prefix in PREFIXES:
             try_link = f"https://{prefix}.{parts.domain}.{parts.suffix}"
@@ -79,9 +87,12 @@ def crawl_company(client: httpx.Client, robot: RobotsChecker, company: dict) -> 
             if board is not None:
                 break
             if num_pages >= MAX_PAGES_PER_SITE:
+                print(f"{num_pages} visited")
                 return {**company, "board_id": None, "status": "not found"}
     if board is None:
+        print(f"{num_pages} visited")
         return {**company, "board_id": None, "status": "not found"}
+    print(f"{num_pages} visited")
     return {**company, "board_id": board, "status": "found"}
 
 def attempt_link(client: httpx.Client,
@@ -119,16 +130,21 @@ def crawl_careers(client: httpx.Client,
     board = look_for_greenhouse([str(response.url), *url_list])
     if board is not None:
         return board, num_pages, list(set(visited_pages))
+    board = greenhouse_from_text(response.text)
+    if board is not None:
+            return board, num_pages, list(set(visited_pages))
     for _ in range(0, MAX_DEPTH_PER_SITE):
-        url_list, num_pages, visited_pages = crawl_next_pages(url_list,
+        url_list, num_pages, visited_pages, board = crawl_next_pages(url_list,
                                                               urlparse(str(response.url)).hostname,
                                                               robot,
                                                               client,
                                                               num_pages,
                                                               visited_pages)
+        if board is not None:
+            return board, num_pages, list(set(visited_pages))
         board = look_for_greenhouse(url_list)
         if board is not None:
-                return board, num_pages, list(set(visited_pages))
+            return board, num_pages, list(set(visited_pages))
         if num_pages >= MAX_PAGES_PER_SITE:
             break
     return None, num_pages, list(set(visited_pages))
@@ -164,20 +180,27 @@ def look_for_greenhouse(urls: list[str]) -> str | None:
                 return match.group(1).lower()
     return None
 
+def greenhouse_from_text(text:str) -> str | None:
+    for gh_format in GREENHOUSE_TEXT_FORMATS:
+        match = gh_format.search(text)
+        if match is not None:
+            return match.group(1).lower()
+    return None
+
 def crawl_next_pages(urls: list[str],
                      host_name: str,
                      robot: RobotsChecker,
                      client: httpx.Client,
                      num_pages: int,
                      visited_pages: list[str]
-                     ) -> tuple[list[str], int, list[str]]:
+                     ) -> tuple[list[str], int, list[str], str | None]:
     compiled_urls = []
     for url in urls:
         if url in visited_pages:
             continue
         visited_pages.append(url)
         if num_pages >= MAX_PAGES_PER_SITE:
-            return list(dict.fromkeys(compiled_urls)), num_pages, list(set(visited_pages))
+            return list(dict.fromkeys(compiled_urls)), num_pages, list(set(visited_pages)), None
         parsed_url = urlparse(url)
         if parsed_url.hostname != host_name:
             continue
@@ -194,12 +217,15 @@ def crawl_next_pages(urls: list[str],
         if response is not None:
             if not is_html(response):
                     continue
+            board = greenhouse_from_text(response.text)
+            if board is not None:
+                return list(dict.fromkeys(compiled_urls)), num_pages, list(set(visited_pages)), board
             visited_pages.append(str(response.url))
             soup = BeautifulSoup(response.text, "html.parser")
             soup_urls = urls_from_html(main_content(soup), str(response.url))
             compiled_urls.append(str(response.url))
             compiled_urls.extend(soup_urls)
-    return list(dict.fromkeys(compiled_urls)), num_pages, list(set(visited_pages))
+    return list(dict.fromkeys(compiled_urls)), num_pages, list(set(visited_pages)), None
 
 def is_html(response: httpx.Response) -> bool:
     content_type = response.headers.get("content-type", "")
@@ -225,9 +251,9 @@ def total_crawl() -> None:
             companies_with_boards.append(dict_with_board)
             save_result(dict_with_board)
             if dict_with_board["status"] == "found":
-                print(f"Company {i+1}/{num_companies} finished. Board found successfully - {dict_with_board["board_id"]}.")
+                print(f"Company {dict_with_board["name"]}, {i+1}/{num_companies} finished. Board found successfully - {dict_with_board["board_id"]}.")
             else:
-                print(f"Company {i+1}/{num_companies} finished. Board not found.")
+                print(f"Company {dict_with_board["name"]}, {i+1}/{num_companies} finished. Board not found.")
 
 def save_result(result: dict, path: Path = RESULTS_PATH) -> None:
     with path.open("a", encoding="utf-8") as f:
@@ -241,13 +267,18 @@ def load_done(path: Path = RESULTS_PATH) -> set[str]:
 
 
 KNOWN_GREENHOUSE = [
-    {"name": "Monzo",      "website": "https://monzo.com",        "expected": "monzo"},
-    {"name": "GoCardless", "website": "https://gocardless.com/",  "expected": "gocardless"},
-    {"name": "Deliveroo",  "website": "https://deliveroo.co.uk/", "expected": "deliveroo"},
-    {"name": "Anthropic",  "website": "https://www.anthropic.com", "expected": "anthropic"},
-    {"name": "Figma",      "website": "https://www.figma.com",    "expected": "figma"},
-    {"name": "Databricks", "website": "https://www.databricks.com", "expected": "databricks"},
-    {"name": "Stripe",     "website": "https://stripe.com",       "expected": "stripe"},
+    {"name": "Monzo",      "website": "https://monzo.com",           "expected": "monzo"},
+    {"name": "GoCardless", "website": "https://gocardless.com/",     "expected": "gocardless"},
+    {"name": "Deliveroo",  "website": "https://deliveroo.co.uk/",    "expected": "deliveroo"},
+    {"name": "Anthropic",  "website": "https://www.anthropic.com",   "expected": "anthropic"},
+    {"name": "Figma",      "website": "https://www.figma.com",       "expected": "figma"},
+    {"name": "Databricks", "website": "https://www.databricks.com",  "expected": "databricks"},
+    {"name": "Stripe",     "website": "https://stripe.com",          "expected": "stripe"},
+    {"name": "Canonical",  "website": "https://canonical.com",       "expected": "canonical"},
+    {"name": "Cloud9",   "website": "http://www.cloud9mobile.co.uk", "expected": "wirelesslogic"},
+    {"name": "Dwelly",   "website": "https://www.dwelly.group/",     "expected": "dwelly"},
+    {"name": "Fideres",  "website": "http://fideres.com/",           "expected": "fideres"},
+    {"name": "joblogic", "website": "https://www.joblogic.com",      "expected": "joblogic"},
 ]
 
 
@@ -285,4 +316,9 @@ def test_known(companies: list[dict] = KNOWN_GREENHOUSE) -> list[dict]:
 
 
 if __name__ == "__main__":
-    total_crawl()
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        test_known()
+    else:
+        total_crawl()

@@ -73,3 +73,7 @@ def save_jobs(conn: sqlite3.Connection, jobs: list[Job], seen_at: str) -> None:
 
 def count_jobs(conn: sqlite3.Connection) -> int:
     return conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+
+def load_job_texts(conn: sqlite3.Connection) -> list[tuple]:
+    query = "SELECT job_id, title, location, departments, offices, content FROM jobs"
+    return conn.execute(query).fetchall()
