@@ -1,6 +1,4 @@
-# Scraper Project
-
-UK Tech Hiring Tracker
+# UK Tech Hiring Tracker
 
 A Python data pipeline that discovers UK technology companies, crawls their websites to find their public job boards, and collects their open roles into a database every day, building a history of who is hiring, for what, and for how long.
 
