@@ -37,14 +37,14 @@ After this, the job board ids can be verified, and once it passes this, some rel
 
 - platform
 - job id
-- board_id
+- board id
 - title
 - location
 - departments
 - offices
 - url
 - updated_at
-- first_published
+- first published
 - content (description)
 - first seen
 - last seen
