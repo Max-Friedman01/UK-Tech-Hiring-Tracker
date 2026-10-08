@@ -1,5 +1,21 @@
+# Virtual environment
 .venv/
+venv/
+
+# Python cache and build files
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .env
 *.db
+*.db-journal
+*.sqlite
+data/analysis_report.txt
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
