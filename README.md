@@ -43,7 +43,7 @@ After this, the job board ids can be verified, and once it passes this, some rel
 - departments
 - offices
 - url
-- updated_at
+- updated at
 - first published
 - content (description)
 - first seen
